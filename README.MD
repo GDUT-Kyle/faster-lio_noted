@@ -1,3 +1,7 @@
+## 本仓库说明
+
+根据论文内容以及本人理解，在代码的主干部分中添加相关中文注释。但是，仅添加了 `linear iVox`部分的注释，`PHC (Pseudo Hilbert Curve) iVox`部分还没理解，因此暂未添加。
+
 ## FasterLIO
 
 This is the code repository of FasterLIO by Chunge Bai, Tao Xiang, Yajie Chen, Haoqian Wang, Fang Zhang and Xiang Gao.
@@ -24,16 +28,16 @@ Below is the FPS tested with avia and velodyne 32 spinning lidar from FastLIO2 a
 FasterLIO is tested in Ubuntu 18.04 and Ubuntu 20.04. Please install the following libraries before compilation.
 
 1. ROS (melodic or noetic)
-2. glog: ```sudo apt-get install libgoogle-glog-dev```
-3. eigen: ```sudo apt-get install libeigen3-dev```
-4. pcl: ```sudo apt-get install libpcl-dev```
-5. yaml-cpp: ```sudo apt-get install libyaml-cpp-dev```
+2. glog:``sudo apt-get install libgoogle-glog-dev``
+3. eigen:``sudo apt-get install libeigen3-dev``
+4. pcl:``sudo apt-get install libpcl-dev``
+5. yaml-cpp:``sudo apt-get install libyaml-cpp-dev``
 
 ## Compile
 
 FasterLIO can be compiled by plain cmake or catkin_make. In Ubuntu 20.04, the compile step is relatively simple.
 
-1. Plain cmake 
+1. Plain cmake
 
 Use the following commands to build FasterLIO:
 
@@ -45,7 +49,7 @@ make -j4
 ```
 
 Note: iVox type should be specified by cmake at compile time. By default we will use linear iVox.
-Use ```cmake .. -DWITH_IVOX_NODE_TYPE_PHC=ON``` to build the FasterLIO with PHC iVox.
+Use ``cmake .. -DWITH_IVOX_NODE_TYPE_PHC=ON`` to build the FasterLIO with PHC iVox.
 
 2. catkin_make
 
@@ -137,18 +141,18 @@ I0216 17:16:05.286808 26492 utils.h:54] > [ Undistort Pcl ] average time usage: 
 I0216 17:16:05.286816 26492 utils.h:59] >>> ===== Printing run time end =====
 ```
 
-Point clouds will be saved to PCD/scans.pcd by default. 
+Point clouds will be saved to PCD/scans.pcd by default.
 
-- Online mode 
+- Online mode
 
 Online mode could be launched through rosrun/roslaunch/directly call. We use roslaunch as an example:
 
-1. Launch faster-lio: ```roslaunch faster_lio mapping_avia.launch``` This will give you a rviz window.
-2. Play the bags using ```rosbag play your bag file``` to see the online outputs.
+1. Launch faster-lio:``roslaunch faster_lio mapping_avia.launch`` This will give you a rviz window.
+2. Play the bags using``rosbag play your bag file`` to see the online outputs.
 
 # Acknowledgements
 
-- We thank the authors of [FastLIO2](https://github.com/hku-mars/FAST_LIO), LOAM for their great jobs.
+- We thank the authors of[FastLIO2](https://github.com/hku-mars/FAST_LIO), LOAM for their great jobs.
 - Please cite our work if you are using FasterLIO in academic work. Bibtex citation will be privided soon.
 - This work is supported by Idriver+ Technologies Co. Ltd.
 
