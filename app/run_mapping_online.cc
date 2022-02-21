@@ -24,6 +24,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
 
     auto laser_mapping = std::make_shared<faster_lio::LaserMapping>();
+    // 初始化ROS相关组件，包括参数导入以及订阅、发布者的定义
     laser_mapping->InitROS(nh);
 
     signal(SIGINT, SigHandle);
@@ -35,6 +36,7 @@ int main(int argc, char **argv) {
             break;
         }
         ros::spinOnce();
+        // 主函数
         laser_mapping->Run();
         rate.sleep();
     }

@@ -117,6 +117,7 @@ void ImuProcess::IMUInit(const common::MeasureGroup &meas, esekfom::esekf<state_
 
     common::V3D cur_acc, cur_gyr;
 
+    // 第一个imu测量
     if (b_first_frame_) {
         Reset();
         N = 1;
@@ -127,6 +128,7 @@ void ImuProcess::IMUInit(const common::MeasureGroup &meas, esekfom::esekf<state_
         mean_gyr_ << gyr_acc.x, gyr_acc.y, gyr_acc.z;
     }
 
+    // 遍历一批imu测量并计算均值和方差
     for (const auto &imu : meas.imu_) {
         const auto &imu_acc = imu->linear_acceleration;
         const auto &gyr_acc = imu->angular_velocity;
@@ -144,13 +146,17 @@ void ImuProcess::IMUInit(const common::MeasureGroup &meas, esekfom::esekf<state_
         N++;
     }
     state_ikfom init_state = kf_state.get_x();
+    // 初始化重力加速度
     init_state.grav = S2(-mean_acc_ / mean_acc_.norm() * common::G_m_s2);
 
+    // 静止时的角速度均值作为bias
     init_state.bg = mean_gyr_;
+    // imu和lidar的外参
     init_state.offset_T_L_I = Lidar_T_wrt_IMU_;
     init_state.offset_R_L_I = Lidar_R_wrt_IMU_;
     kf_state.change_x(init_state);
 
+    // 初始状态的协方差矩阵，一般是非常小的值
     esekfom::esekf<state_ikfom, 12, input_ikfom>::cov init_P = kf_state.get_P();
     init_P.setIdentity();
     init_P(6, 6) = init_P(7, 7) = init_P(8, 8) = 0.00001;
@@ -309,14 +315,17 @@ void ImuProcess::Process(const common::MeasureGroup &meas, esekfom::esekf<state_
 
     if (imu_need_init_) {
         /// The very first lidar frame
-        // 初始化状态估计器
+        // 前20个imu测量用于初始化状态估计器
         IMUInit(meas, kf_state, init_iter_num_);
 
+        // imu初始化标志
         imu_need_init_ = true;
 
+        // 记录上一批imu测量的最后一个，用于下一次中值积分
         last_imu_ = meas.imu_.back();
 
         state_ikfom imu_state = kf_state.get_x();
+        // 前MAX_INI_COUNT 20个imu测量用于初始化
         if (init_iter_num_ > MAX_INI_COUNT) {
             cov_acc_ *= pow(common::G_m_s2 / mean_acc_.norm(), 2);
             imu_need_init_ = false;
@@ -330,6 +339,7 @@ void ImuProcess::Process(const common::MeasureGroup &meas, esekfom::esekf<state_
         return;
     }
 
+    // 对imu测量进行积分，状态预测以及点云去畸变
     Timer::Evaluate([&, this]() { UndistortPcl(meas, kf_state, *cur_pcl_un_); }, "Undistort Pcl");
 }
 }  // namespace faster_lio

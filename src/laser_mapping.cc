@@ -9,6 +9,7 @@
 namespace faster_lio {
 
 bool LaserMapping::InitROS(ros::NodeHandle &nh) {
+    // 从yaml文件中导入参数
     LoadParams(nh);
     SubAndPubToROS(nh);
 
@@ -32,10 +33,13 @@ bool LaserMapping::InitWithoutROS(const std::string &config_yaml) {
     }
 
     // localmap init (after LoadParams)
+    // 局部体素地图的初始化，包括导入体素的参数
     ivox_ = std::make_shared<IVoxType>(ivox_options_);
 
     // esekf init
+    // 初始化ieskf状态估计器
     std::vector<double> epsi(23, 0.001);
+    // 将相关函数地址传入
     kf_.init_dyn_share(
         get_f, df_dx, df_dw,
         [this](state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_data) { ObsModel(s, ekfom_data); },
@@ -438,6 +442,8 @@ bool LaserMapping::SyncPackages() {
     }
 
     /*** push a lidar scan ***/
+    // 这里的lidar_end_time_很重要，由于fast_lio中的主要贡献之一是back-propagation
+    // 最后的结果是将一帧点云的所有点都校正到这一帧扫描结束的位置，该位置对应的时间就是lidar_end_time_
     if (!lidar_pushed_) {
         // 第一个雷达测量
         measures_.lidar_ = lidar_buffer_.front();
