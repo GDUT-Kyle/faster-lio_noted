@@ -187,10 +187,12 @@ void ImuProcess::UndistortPcl(const common::MeasureGroup &meas, esekfom::esekf<s
     /*** Initialize IMU pose ***/
     state_ikfom imu_state = kf_state.get_x();
     IMUpose_.clear();
+    // 设置IMU初始状态的时间戳, 加速度， 角速度， 速度， 位置， 旋转
     IMUpose_.push_back(common::set_pose6d(0.0, acc_s_last_, angvel_last_, imu_state.vel, imu_state.pos,
                                           imu_state.rot.toRotationMatrix()));
 
     /*** forward propagation at each imu_ point ***/
+    // 前向传播，就是对imu测量进行积分
     common::V3D angvel_avr, acc_avr, acc_imu, vel_imu, pos_imu;
     common::M3D R_imu;
 
@@ -199,6 +201,7 @@ void ImuProcess::UndistortPcl(const common::MeasureGroup &meas, esekfom::esekf<s
     input_ikfom in;
     // 遍历imu测量
     for (auto it_imu = v_imu.begin(); it_imu < (v_imu.end() - 1); it_imu++) {
+        // &&是右值引用 参考： http://c.biancheng.net/view/7829.html
         auto &&head = *(it_imu);
         auto &&tail = *(it_imu + 1);
 
@@ -226,6 +229,7 @@ void ImuProcess::UndistortPcl(const common::MeasureGroup &meas, esekfom::esekf<s
 
         in.acc = acc_avr;
         in.gyro = angvel_avr;
+        // 配置imu测量白噪声矩阵
         Q_.block<3, 3>(0, 0).diagonal() = cov_gyr_;
         Q_.block<3, 3>(3, 3).diagonal() = cov_acc_;
         Q_.block<3, 3>(6, 6).diagonal() = cov_bias_gyr_;
@@ -234,6 +238,7 @@ void ImuProcess::UndistortPcl(const common::MeasureGroup &meas, esekfom::esekf<s
         kf_state.predict(dt, Q_, in);
 
         /* save the poses at each IMU measurements */
+        // 获取预测更新后的系统状态
         imu_state = kf_state.get_x();
         // 测量值-偏移量bias
         angvel_last_ = angvel_avr - imu_state.bg;

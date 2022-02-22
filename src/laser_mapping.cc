@@ -503,16 +503,18 @@ void LaserMapping::MapIncremental() {
     PointVector points_to_add;
     PointVector point_no_need_downsample;
 
+    // 预留vector空间
     int cur_pts = scan_down_body_->size();
     points_to_add.reserve(cur_pts);
     point_no_need_downsample.reserve(cur_pts);
 
+    // 为最新一帧点云的每个点配置索引
     std::vector<size_t> index(cur_pts);
     for (size_t i = 0; i < cur_pts; ++i) {
         index[i] = i;
     }
 
-    // c++17特性，并发编程
+    // 点云层面进行多线程操作
     std::for_each(std::execution::unseq, index.begin(), index.end(), [&](const size_t &i) {
         /* transform to world frame */
         // 点云由body坐标转到world坐标
@@ -520,16 +522,17 @@ void LaserMapping::MapIncremental() {
 
         /* decide if need add to map */
         PointType &point_world = scan_down_world_->points[i];
-        // 之前进行了最近邻搜索，如果该点可以找到近邻点
+        // 之前进行了最近邻搜索，如果该点可以找到近邻点，需要进行降采样测量，避免单个体素内有过多点
         if (!nearest_points_[i].empty() && flg_EKF_inited_) {
-            // 该点的最近邻点组成的向量
+            // 该点的最近邻点组成的向量的左引用
             const PointVector &points_near = nearest_points_[i];
 
             // filter_size_map: 0.5，该点对应的体素中心坐标
+            // 计算该点所属体素的key值，也就是该体素的中心值
             Eigen::Vector3f center =
                 ((point_world.getVector3fMap() / filter_size_map_min_).array().floor() + 0.5) * filter_size_map_min_;
 
-            // 近邻点到体素中心坐标的距离
+            // 第一个近邻点(离当前点最近的一个点)到体素中心坐标的距离
             Eigen::Vector3f dis_2_center = points_near[0].getVector3fMap() - center;
 
             // To avoid too many points accumulating in one voxel, we leave out
@@ -541,6 +544,7 @@ void LaserMapping::MapIncremental() {
             // 如果近邻点比该点更接近对应的体素中心，则不再插入该点
 
             // 如果它的近邻点离体素中心比较远，则将该点加入到point_no_need_downsample
+            // 意思是当前点将被加入到体素地图中
             if (fabs(dis_2_center.x()) > 0.5 * filter_size_map_min_ &&
                 fabs(dis_2_center.y()) > 0.5 * filter_size_map_min_ &&
                 fabs(dis_2_center.z()) > 0.5 * filter_size_map_min_) {
@@ -548,8 +552,9 @@ void LaserMapping::MapIncremental() {
                 return;
             }
 
+            // 如果最近邻点离中心还算比较接近的话，则进一步判断
             bool need_add = true;
-            // 计算该点与体素中心的欧氏距离
+            // 计算当前点与体素中心的欧氏距离
             float dist = common::calc_dist(point_world.getVector3fMap(), center);
             // 判断近邻点的个数是否大于5个
             if (points_near.size() >= options::NUM_MATCH_POINTS) {
@@ -561,17 +566,21 @@ void LaserMapping::MapIncremental() {
                     }
                 }
             }
+            // 如果没有近邻点比当前点更接近体素中心，则添加该点
+            // 或者近邻点的个数不足5个，说明地图中该区域的点云比较稀疏，需要将该点插入到地图
             if (need_add) {
                 points_to_add.emplace_back(point_world);
             }
-        } else { // 当前点找不到近邻点，则直接插入该点
+        } else { // 当前点找不到近邻点，则需要开辟新的体素，直接插入该点，不需要降采样了
             points_to_add.emplace_back(point_world);
         }
     });
 
     Timer::Evaluate(
         [&, this]() {
+            // 孤点，需要开辟新的体素，插入该点
             ivox_->AddPoints(points_to_add);
+            // 能找到近邻点的点，他们已经被降采样，插入已有体素中
             ivox_->AddPoints(point_no_need_downsample);
         },
         "    IVox Add Points");

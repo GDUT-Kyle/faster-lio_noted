@@ -267,16 +267,22 @@ class esekf {
 
     // iterated error state EKF propogation
     void predict(double &dt, processnoisecovariance &Q, const input &i_in) {
+        // f函数对应use-ikfom.hpp中的 get_f函数，对应fast_lio2论文公式(2)
         flatted_state f_ = f(x_, i_in);
+        // 对应use-ikfom.hpp中的 df_dx函数 
+        // 对应fast_lio2论文公式(7)
         cov_ f_x_ = f_x(x_, i_in);
         cov f_x_final;
 
+        // 对应fast_lio2论文公式(7)
         Matrix<scalar_type, m, process_noise_dof> f_w_ = f_w(x_, i_in);
         Matrix<scalar_type, n, process_noise_dof> f_w_final;
         state x_before = x_;
+        // 对应fast_lio2论文公式(2)
         x_.oplus(f_, dt);
 
         F_x1 = cov::Identity();
+        // 更新f_x和f_w
         for (std::vector<std::pair<std::pair<int, int>, int>>::iterator it = x_.vect_state.begin();
              it != x_.vect_state.end(); it++) {
             int idx = (*it).first.first;

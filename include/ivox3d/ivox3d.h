@@ -61,6 +61,7 @@ class IVox {
      * constructor
      * @param options  ivox options
      */
+    // 初始化一个体素后会生成近邻体素
     explicit IVox(Options options) : options_(options) {
         options_.inv_resolution_ = 1.0 / options_.resolution_;
         GenerateNearbyGrids();
@@ -227,8 +228,10 @@ size_t IVox<dim, node_type, PointType>::NumValidGrids() const {
     return grids_map_.size();
 }
 
+// 为当前体素生成近邻体素
 template <int dim, IVoxNodeType node_type, typename PointType>
 void IVox<dim, node_type, PointType>::GenerateNearbyGrids() {
+    // 参数文件中 ivox_nearby_type: 18   # 6, 18, 26
     if (options_.nearby_type_ == NearbyType::CENTER) {
         nearby_grids_.emplace_back(KeyType::Zero());
     } else if (options_.nearby_type_ == NearbyType::NEARBY6) {
@@ -255,12 +258,14 @@ void IVox<dim, node_type, PointType>::GenerateNearbyGrids() {
 
 template <int dim, IVoxNodeType node_type, typename PointType>
 bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointVector& cloud, PointVector& closest_cloud) {
+    // 给点云的每个点分配索引
     std::vector<size_t> index(cloud.size());
     for (int i = 0; i < cloud.size(); ++i) {
         index[i] = i;
     }
     closest_cloud.resize(cloud.size());
 
+    // 多线程遍历点云
     std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&cloud, &closest_cloud, this](size_t idx) {
         PointType pt;
         if (GetClosestPoint(cloud[idx], pt)) {

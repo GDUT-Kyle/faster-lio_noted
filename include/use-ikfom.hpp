@@ -32,10 +32,13 @@ MTK::get_cov<process_noise_ikfom>::type process_noise_cov() {
 
 // double L_offset_to_I[3] = {0.04165, 0.02326, -0.0284}; // Avia
 // vect3 Lidar_offset_to_IMU(L_offset_to_I, 3);
+// fast_lio2论文公式(2), 起始这里的f就是将imu的积分方程组成矩阵形式然后再去计算
 Eigen::Matrix<double, 24, 1> get_f(state_ikfom &s, const input_ikfom &in) {
     Eigen::Matrix<double, 24, 1> res = Eigen::Matrix<double, 24, 1>::Zero();
     vect3 omega;
+    // omega = in.gyro - s.bg
     in.gyro.boxminus(omega, s.bg);
+    // 加速度转到世界坐标系
     vect3 a_inertial = s.rot * (in.acc - s.ba);
     for (int i = 0; i < 3; i++) {
         res(i) = s.vel[i];
@@ -45,6 +48,7 @@ Eigen::Matrix<double, 24, 1> get_f(state_ikfom &s, const input_ikfom &in) {
     return res;
 }
 
+// 对应fast_lio2论文公式(7)
 Eigen::Matrix<double, 24, 23> df_dx(state_ikfom &s, const input_ikfom &in) {
     Eigen::Matrix<double, 24, 23> cov = Eigen::Matrix<double, 24, 23>::Zero();
     cov.template block<3, 3>(0, 12) = Eigen::Matrix3d::Identity();
@@ -62,6 +66,7 @@ Eigen::Matrix<double, 24, 23> df_dx(state_ikfom &s, const input_ikfom &in) {
     return cov;
 }
 
+// 对应fast_lio2论文公式(7)
 Eigen::Matrix<double, 24, 12> df_dw(state_ikfom &s, const input_ikfom &in) {
     Eigen::Matrix<double, 24, 12> cov = Eigen::Matrix<double, 24, 12>::Zero();
     cov.template block<3, 3>(12, 3) = -s.rot.toRotationMatrix();
