@@ -37,12 +37,16 @@ struct IVoxNodeTypeTraits<IVoxNodeType::PHC, PointT, dim> {
 template <int dim = 3, IVoxNodeType node_type = IVoxNodeType::DEFAULT, typename PointType = pcl::PointXYZ>
 class IVox {
    public:
+//    体素的key值类型是一个3维向量
     using KeyType = Eigen::Matrix<int, dim, 1>;
+    // 体素内的点的类型也是存储为一个3维向量
     using PtType = Eigen::Matrix<float, dim, 1>;
     using NodeType = typename IVoxNodeTypeTraits<node_type, PointType, dim>::NodeType;
+    // 体素内的点集类型
     using PointVector = std::vector<PointType, Eigen::aligned_allocator<PointType>>;
     using DistPoint = typename NodeType::DistPoint;
 
+    // 用户决定的邻近体素个数
     enum class NearbyType {
         CENTER,  // center only
         NEARBY6,
@@ -50,6 +54,7 @@ class IVox {
         NEARBY26,
     };
 
+    // 存储体素的参数
     struct Options {
         float resolution_ = 0.2;                        // ivox resolution
         float inv_resolution_ = 10.0;                   // inverse resolution
@@ -63,6 +68,7 @@ class IVox {
      */
     // 初始化一个体素后会生成近邻体素
     explicit IVox(Options options) : options_(options) {
+        // 配置体素的分辨率
         options_.inv_resolution_ = 1.0 / options_.resolution_;
         GenerateNearbyGrids();
     }
@@ -152,7 +158,8 @@ bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, Point
     }
 #endif
 
-    // 遍历近邻的体素
+    // 遍历近邻的体素， nearby_grids_存储的是邻近体素的相对偏移，
+    // 将相对偏移叠加上当前体素的绝对索引，即可得到邻近体素的绝对索引
     for (const KeyType& delta : nearby_grids_) {
         // 在地图中的实际体素索引
         auto dkey = key + delta;
@@ -228,7 +235,7 @@ size_t IVox<dim, node_type, PointType>::NumValidGrids() const {
     return grids_map_.size();
 }
 
-// 为当前体素生成近邻体素
+// 为当前体素生成近邻体素坐标的相对偏移量
 template <int dim, IVoxNodeType node_type, typename PointType>
 void IVox<dim, node_type, PointType>::GenerateNearbyGrids() {
     // 参数文件中 ivox_nearby_type: 18   # 6, 18, 26

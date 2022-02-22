@@ -36,6 +36,7 @@ inline Eigen::Matrix<float, 3, 1> ToEigen<float, 3, pcl::PointXYZINormal>(const 
     return pt.getVector3fMap();
 }
 
+// IVoxNode是IVox的组成单元
 template <typename PointT, int dim = 3>
 class IVoxNode {
    public:
